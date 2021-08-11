@@ -1,6 +1,7 @@
 // @refresh reset
 
 import Head from 'next/head'
+import Image from 'next/image'
 import { useState } from 'react'
 
 import { makeStyles } from '@material-ui/core/styles'
@@ -64,6 +65,16 @@ const useStyles = makeStyles((theme) => ({
   },
   button: {
     minWidth: 160,
+    width: '100%',
+  },
+  footer: {
+    borderTop: '1px solid #eaeaea',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 'auto',
+    padding: theme.spacing(4, 2, 6, 2),
     width: '100%',
   },
 }))
@@ -143,11 +154,15 @@ export default function Home({ steps }: InferGetServerSidePropsType<typeof getSe
           )}
         </Box>
 
-        <Box my={4}>
+        <Box className={classes.footer} component="footer" mt={14}>
+          <Image src="/zurich-logo-desktop.svg" alt="Zurich Logo" width={150} height={70} />
+        </Box>
+
+        {/* <Box my={4}>
           <Typography variant="inherit" component="code">
             {JSON.stringify(steps, null)}
           </Typography>
-        </Box>
+        </Box> */}
       </Container>
     </>
   )
