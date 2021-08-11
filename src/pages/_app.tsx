@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import Head from 'next/head'
 import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from '@material-ui/core/styles'
@@ -7,6 +8,16 @@ import theme from '@src/theme'
 import type { AppProps } from 'next/app'
 
 function MyApp({ Component, pageProps }: AppProps) {
+  useEffect(() => {
+    // Remove the server-side injected CSS.
+    // TODO: this doesn't seem to work...
+    const jssStyles = document.querySelector('#jss-server-side')
+
+    if (jssStyles) {
+      jssStyles?.parentElement?.removeChild(jssStyles)
+    }
+  }, [])
+
   return (
     <>
       <Head>
