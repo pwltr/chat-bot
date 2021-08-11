@@ -3,6 +3,7 @@
 import Head from 'next/head'
 import Image from 'next/image'
 import { useState } from 'react'
+import toast from 'react-hot-toast'
 
 import { makeStyles } from '@material-ui/core/styles'
 import Button from '@material-ui/core/Button'
@@ -103,6 +104,13 @@ export default function Home({ steps }: InferGetServerSidePropsType<typeof getSe
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: step.name, value: option.value }),
+    }).then((response) => {
+      if (response.status >= 200 && response.status <= 299) {
+        return
+      } else {
+        console.error(response.status, response.statusText)
+        toast.error('Ein Fehler ist aufgetreten. Versuchen Sie es bitte später nochmal.')
+      }
     })
   }
 

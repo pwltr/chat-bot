@@ -1,4 +1,5 @@
 import Head from 'next/head'
+import { Toaster } from 'react-hot-toast'
 import { ThemeProvider } from '@material-ui/core/styles'
 import CssBaseline from '@material-ui/core/CssBaseline'
 import theme from '@src/theme'
@@ -14,6 +15,7 @@ function MyApp({ Component, pageProps }: AppProps) {
 
       <ThemeProvider theme={theme}>
         <CssBaseline />
+        <Toaster />
         <Component {...pageProps} />
       </ThemeProvider>
     </>
