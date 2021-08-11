@@ -1,7 +1,13 @@
-import Head from 'next/head'
+// @refresh reset
 
+import Head from 'next/head'
+import { makeStyles } from '@material-ui/core/styles'
+import Button from '@material-ui/core/Button'
+import Container from '@material-ui/core/Container'
 import Typography from '@material-ui/core/Typography'
 import Box from '@material-ui/core/Box'
+import Grid from '@material-ui/core/Grid'
+import Paper from '@material-ui/core/Paper'
 
 import type { InferGetServerSidePropsType } from 'next'
 
@@ -29,7 +35,38 @@ export const getServerSideProps = async () => {
   }
 }
 
+const useStyles = makeStyles((theme) => ({
+  root: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    minHeight: '100vh',
+    paddingTop: theme.spacing(10),
+  },
+  content: {
+    width: '100%',
+  },
+  step: {
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: theme.spacing(4, 3),
+    minHeight: 165,
+    width: '100%',
+  },
+  button: {
+    minWidth: 160,
+    width: '100%',
+  },
+}))
+
 export default function Home({ steps }: InferGetServerSidePropsType<typeof getServerSideProps>) {
+  const classes = useStyles()
+
+  const activeStep = steps[0]
+
   return (
     <>
       <Head>
@@ -38,11 +75,44 @@ export default function Home({ steps }: InferGetServerSidePropsType<typeof getSe
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
-      <Box my={4}>
-        <Typography variant="inherit" component="code">
-          {JSON.stringify(steps, null)}
+      <Container className={classes.root} maxWidth="sm" component="main">
+        <Typography variant="h1" component="h1">
+          Hallo,
         </Typography>
-      </Box>
+
+        <Box my={10} className={classes.content}>
+          <Paper id={`step-${activeStep.name}`} className={classes.step} elevation={2}>
+            <Typography variant="h5" component="h3" align="center">
+              {activeStep.text}
+            </Typography>
+
+            <Box mt={4}>
+              {activeStep.uiType === 'button' && (
+                <Grid container spacing={3} justifyContent="center" alignItems="center">
+                  {activeStep.valueOptions.map((option, index) => (
+                    <Grid key={index} item xs={12} md={6}>
+                      <Button
+                        className={classes.button}
+                        variant="contained"
+                        color="primary"
+                        onClick={() => console.log(option)}
+                      >
+                        {option.text}
+                      </Button>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
+            </Box>
+          </Paper>
+        </Box>
+
+        <Box my={4}>
+          <Typography variant="inherit" component="code">
+            {JSON.stringify(steps, null)}
+          </Typography>
+        </Box>
+      </Container>
     </>
   )
 }
