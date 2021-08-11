@@ -1,6 +1,8 @@
 // @refresh reset
 
 import Head from 'next/head'
+import { useState } from 'react'
+
 import { makeStyles } from '@material-ui/core/styles'
 import Button from '@material-ui/core/Button'
 import Container from '@material-ui/core/Container'
@@ -26,8 +28,12 @@ type TStep = {
   valueOptions: TOption[]
 }
 
+// TODO: move this to .env
+const FLOWDATA_URL = 'https://raw.githubusercontent.com/mzronek/task/main/flow.json'
+const API_URL = 'https://virtserver.swaggerhub.com/L8475/task/1.0.0/conversation'
+
 export const getServerSideProps = async () => {
-  const res = await fetch('https://raw.githubusercontent.com/mzronek/task/main/flow.json')
+  const res = await fetch(FLOWDATA_URL)
   const steps: TStep[] = await res.json()
 
   return {
@@ -65,7 +71,24 @@ const useStyles = makeStyles((theme) => ({
 export default function Home({ steps }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const classes = useStyles()
 
-  const activeStep = steps[0]
+  const [activeStep, setActiveStep] = useState<TStep>(steps[0])
+
+  const handleNext = (option: TOption) => {
+    const nextStep = steps.find((step) => step.id === option.nextId)
+
+    if (nextStep) {
+      sendAnswer(activeStep, option)
+      setActiveStep(nextStep)
+    }
+  }
+
+  const sendAnswer = (step: TStep, option: TOption) => {
+    fetch(API_URL, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: step.name, value: option.value }),
+    })
+  }
 
   return (
     <>
@@ -95,7 +118,7 @@ export default function Home({ steps }: InferGetServerSidePropsType<typeof getSe
                         className={classes.button}
                         variant="contained"
                         color="primary"
-                        onClick={() => console.log(option)}
+                        onClick={() => handleNext(option)}
                       >
                         {option.text}
                       </Button>
