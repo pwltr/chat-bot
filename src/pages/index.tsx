@@ -154,6 +154,7 @@ export default function Home({ steps }: InferGetServerSidePropsType<typeof getSe
                     {activeStep.valueOptions.map((option, index) => (
                       <Grid key={index} item xs={12} md={6}>
                         <Button
+                          data-testid={`button-${option.text}`}
                           className={classes.button}
                           variant="contained"
                           color="primary"
