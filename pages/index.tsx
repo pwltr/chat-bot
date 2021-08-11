@@ -72,13 +72,18 @@ export default function Home({ steps }: InferGetServerSidePropsType<typeof getSe
   const classes = useStyles()
 
   const [activeStep, setActiveStep] = useState<TStep>(steps[0])
+  const [isFinished, setIsFinished] = useState(false)
 
   const handleNext = (option: TOption) => {
-    const nextStep = steps.find((step) => step.id === option.nextId)
+    if (option.nextId) {
+      const nextStep = steps.find((step) => step.id === option.nextId)
 
-    if (nextStep) {
-      sendAnswer(activeStep, option)
-      setActiveStep(nextStep)
+      if (nextStep) {
+        sendAnswer(activeStep, option)
+        setActiveStep(nextStep)
+      }
+    } else {
+      setIsFinished(true)
     }
   }
 
@@ -104,30 +109,38 @@ export default function Home({ steps }: InferGetServerSidePropsType<typeof getSe
         </Typography>
 
         <Box my={10} className={classes.content}>
-          <Paper id={`step-${activeStep.name}`} className={classes.step} elevation={2}>
-            <Typography variant="h5" component="h3" align="center">
-              {activeStep.text}
-            </Typography>
+          {isFinished ? (
+            <Paper id="step-final" className={classes.step} elevation={2}>
+              <Typography variant="h4" component="h2" align="center">
+                Herzlichen Dank für Ihre Angaben!
+              </Typography>
+            </Paper>
+          ) : (
+            <Paper id={`step-${activeStep.name}`} className={classes.step} elevation={2}>
+              <Typography variant="h5" component="h3" align="center">
+                {activeStep.text}
+              </Typography>
 
-            <Box mt={4}>
-              {activeStep.uiType === 'button' && (
-                <Grid container spacing={3} justifyContent="center" alignItems="center">
-                  {activeStep.valueOptions.map((option, index) => (
-                    <Grid key={index} item xs={12} md={6}>
-                      <Button
-                        className={classes.button}
-                        variant="contained"
-                        color="primary"
-                        onClick={() => handleNext(option)}
-                      >
-                        {option.text}
-                      </Button>
-                    </Grid>
-                  ))}
-                </Grid>
-              )}
-            </Box>
-          </Paper>
+              <Box mt={4}>
+                {activeStep.uiType === 'button' && (
+                  <Grid container spacing={3} justifyContent="center" alignItems="center">
+                    {activeStep.valueOptions.map((option, index) => (
+                      <Grid key={index} item xs={12} md={6}>
+                        <Button
+                          className={classes.button}
+                          variant="contained"
+                          color="primary"
+                          onClick={() => handleNext(option)}
+                        >
+                          {option.text}
+                        </Button>
+                      </Grid>
+                    ))}
+                  </Grid>
+                )}
+              </Box>
+            </Paper>
+          )}
         </Box>
 
         <Box my={4}>
