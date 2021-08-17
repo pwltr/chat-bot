@@ -1,10 +1,12 @@
 import styled from 'styled-components'
 import { motion, useSpring, useTransform } from 'framer-motion'
-import { color } from '@src/theme'
+import { color } from '@styles/theme'
 
 const Wrapper = styled.div`
-  background: ${color.monochrome};
+  background: ${color.monochrome[200]};
   display: flex;
+  position: fixed;
+  top: 0;
   height: 9px;
   width: 100%;
 `

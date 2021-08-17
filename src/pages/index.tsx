@@ -1,19 +1,17 @@
-// @refresh reset
-
 import Head from 'next/head'
-import Image from 'next/image'
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import toast from 'react-hot-toast'
 
 import { makeStyles } from '@material-ui/core/styles'
-import Button from '@material-ui/core/Button'
 import Container from '@material-ui/core/Container'
 import Typography from '@material-ui/core/Typography'
 import Box from '@material-ui/core/Box'
-import Grid from '@material-ui/core/Grid'
-import Paper from '@material-ui/core/Paper'
 
+import FlowService from '@services/api/flow'
+import ConversationService from '@services/api/conversation'
 import ProgressBar from '@components/ProgressBar'
+import Step from '@components/Step'
+import Footer from '@components/Footer'
 
 import type { InferGetServerSidePropsType } from 'next'
 
@@ -23,7 +21,7 @@ type TOption = {
   text: string
 }
 
-type TStep = {
+export type TStep = {
   id: number
   name: string
   text: string
@@ -32,18 +30,7 @@ type TStep = {
   valueOptions: TOption[]
 }
 
-// TODO: move this to .env
-const FLOWDATA_URL = 'https://raw.githubusercontent.com/mzronek/task/main/flow.json'
-const API_URL = 'https://virtserver.swaggerhub.com/L8475/task/1.0.0/conversation'
-
-export const getServerSideProps = async () => {
-  const res = await fetch(FLOWDATA_URL)
-  const steps: TStep[] = await res.json()
-
-  return {
-    props: { steps },
-  }
-}
+type TCompletedStep = TStep & { valueChoice: TOption }
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -51,74 +38,64 @@ const useStyles = makeStyles((theme) => ({
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    // subtract ProgressBar height
-    minHeight: 'calc(100vh - 9px)',
+    minHeight: '100vh',
     paddingTop: theme.spacing(10),
   },
-  content: {
-    width: '100%',
-  },
-  step: {
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: theme.spacing(4, 3),
-    minHeight: 165,
-    width: '100%',
-  },
-  button: {
-    minWidth: 160,
-    width: '100%',
-  },
-  footer: {
-    borderTop: '1px solid #eaeaea',
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 'auto',
-    padding: theme.spacing(4, 2, 6, 2),
-    width: '100%',
-  },
 }))
+
+export const getServerSideProps = async () => {
+  const response = await FlowService.getData()
+  const steps: TStep[] = await response.json()
+
+  return {
+    props: { steps },
+  }
+}
 
 export default function Home({ steps }: InferGetServerSidePropsType<typeof getServerSideProps>) {
   const classes = useStyles()
 
   const [activeStep, setActiveStep] = useState<TStep>(steps[0])
+  const [completedSteps, setCompletedSteps] = useState<TCompletedStep[]>([])
   const [isFinished, setIsFinished] = useState(false)
 
-  const handleNext = (option: TOption) => {
-    if (option.nextId) {
-      const nextStep = steps.find((step) => step.id === option.nextId)
-
-      if (nextStep) {
-        sendAnswer(activeStep, option)
-        setActiveStep(nextStep)
-      }
-    } else {
-      setIsFinished(true)
-    }
-  }
-
-  const sendAnswer = (step: TStep, option: TOption) => {
-    fetch(API_URL, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: step.name, value: option.value }),
-    }).then((response) => {
-      if (response.status >= 200 && response.status <= 299) {
-        return
-      } else {
-        console.error(response.status, response.statusText)
-        toast.error('Ein Fehler ist aufgetreten. Versuchen Sie es bitte später nochmal.')
-      }
-    })
-  }
-
-  // hacky
   const progressBarPercentage = isFinished ? 100 : Math.floor((activeStep.id - 100) / 3)
+
+  const handleNext = (option: TOption) => {
+    setCompletedSteps((prevState) => [...prevState, { ...activeStep, valueChoice: option }])
+
+    if (!option.nextId) {
+      setIsFinished(true)
+      return
+    }
+
+    const nextStep = steps.find((step) => step.id === option.nextId)
+
+    if (!nextStep) {
+      console.error('Error: missing next step')
+      toast.error('Zu dieser Antwort existiert kein weiterer Schritt. Bitte kontaktieren Sie unseren Support.')
+      return
+    }
+
+    setActiveStep(nextStep)
+  }
+
+  const sendAnswers = useCallback(async () => {
+    const answers = completedSteps.map((step) => ({ name: step.name, value: step.valueChoice.value }))
+    const response = await ConversationService.sendAnswers(answers)
+
+    if (response?.status >= 200 && response?.status <= 299) {
+      return
+    } else {
+      toast.error('Ein Fehler ist aufgetreten. Versuchen Sie es bitte später nochmal.')
+    }
+  }, [completedSteps])
+
+  useEffect(() => {
+    if (isFinished) {
+      sendAnswers()
+    }
+  }, [isFinished, sendAnswers])
 
   return (
     <>
@@ -135,51 +112,16 @@ export default function Home({ steps }: InferGetServerSidePropsType<typeof getSe
           Hallo,
         </Typography>
 
-        <Box my={10} className={classes.content}>
-          {isFinished ? (
-            <Paper id="step-final" className={classes.step} elevation={2}>
-              <Typography variant="h4" component="h2" align="center">
-                Herzlichen Dank für Ihre Angaben!
-              </Typography>
-            </Paper>
-          ) : (
-            <Paper id={`step-${activeStep.name}`} className={classes.step} elevation={2}>
-              <Typography variant="h5" component="h3" align="center">
-                {activeStep.text}
-              </Typography>
+        <Box mt={4} mb={8}>
+          {completedSteps.map((step) => (
+            <Step key={step.id} step={step} onButtonClick={handleNext} isCompleted />
+          ))}
 
-              <Box mt={4}>
-                {activeStep.uiType === 'button' && (
-                  <Grid container spacing={3} justifyContent="center" alignItems="center">
-                    {activeStep.valueOptions.map((option, index) => (
-                      <Grid key={index} item xs={12} md={6}>
-                        <Button
-                          data-testid={`button-${option.text}`}
-                          className={classes.button}
-                          variant="contained"
-                          color="primary"
-                          onClick={() => handleNext(option)}
-                        >
-                          {option.text}
-                        </Button>
-                      </Grid>
-                    ))}
-                  </Grid>
-                )}
-              </Box>
-            </Paper>
-          )}
+          {!isFinished && <Step step={activeStep} onButtonClick={handleNext} />}
+          {isFinished && <Step step={{ name: 'final', text: 'Herzlichen Dank für Ihre Angaben!' }} isFinal />}
         </Box>
 
-        <Box className={classes.footer} component="footer" mt={14}>
-          <Image src="/zurich-logo-desktop.svg" alt="Zurich Logo" width={150} height={70} />
-        </Box>
-
-        {/* <Box my={4}>
-          <Typography variant="inherit" component="code">
-            {JSON.stringify(steps, null)}
-          </Typography>
-        </Box> */}
+        <Footer />
       </Container>
     </>
   )
